@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบ Quantity Takeoff สำหรับงานก่อสร้าง</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .toolbar {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary { background-color: #2196F3; color: white; }
+        .btn-success { background-color: #4CAF50; color: white; }
+        .btn-warning { background-color: #FF9800; color: white; }
+        .btn-danger { background-color: #f44336; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        
+        .btn:hover {
+            opacity: 0.8;
+        }
+        
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .subtotal-row {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        
+        .grandtotal-row {
+            background-color: #c8e6c9;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .status-bar {
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .category-header {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .number {
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ระบบ Quantity Takeoff สำหรับงานก่อสร้าง</h1>
+        </div>
+        
+        <div class="toolbar">
+            <button class="btn btn-secondary" onclick="refreshData()">รีเฟรช</button>
+            <button class="btn btn-success" onclick="calculateTotals()">คำนวณ</button>
+            <button class="btn btn-primary" onclick="addNewRow()">เพิ่มรายการ</button>
+            <button class="btn btn-danger" onclick="deleteRow()">ลบรายการ</button>
+            <button class="btn btn-warning" onclick="exportCSV()">ส่งออก CSV</button>
+        </div>
+        
+        <div class="table-container">
+            <table id="qtoTable">
+                <thead>
+                    <tr>
+                        <th>หมวดงานหลัก</th>
+                        <th>รหัส</th>
+                        <th>รายการงานย่อย</th>
+                        <th class="text-right">QTY</th>
+                        <th>UNIT</th>
+                        <th class="text-right">Material/unit</th>
+                        <th class="text-right">Material Total</th>
+                        <th class="text-right">Labor/unit</th>
+                        <th class="text-right">Labor Total</th>
+                        <th class="text-right">Total</th>
+                        <th>หมายเหตุ</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="status-bar">
+            <span id="statusMessage">พร้อมใช้งาน</span>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const sampleData = [
+            // งานโครงสร้าง
+            {category: "งานโครงสร้าง", code: "1.2", item: "แบบหล่อคอนกรีต", qty: 96.18, unit: "ตร.ม.", materialUnit: 100.00, materialTotal: 9618.00, laborUnit: 30.00, laborTotal: 2885.40, total: 12503.40, note: "", isSubtotal: false},
+            {category: "", code: "", item: "คอนกรีต 240 ksc", qty: 10.64, unit: "ลบ.ม.", materialUnit: 1800.00, materialTotal: 19152.00, laborUnit: 300.00, laborTotal: 3192.00, total: 22344.00, note: "", isSubtotal: false},
+            {category: "", code: "", item: "เหล็กเสริม (RB12)", qty: 56.77, unit: "กก.", materialUnit: 22.00, materialTotal: 1249.00, laborUnit: 10.00, laborTotal: 567.70, total: 1816.70, note: "", isSubtotal: false},
+            {category: "", code: "", item: "Wiremesh 4 มม. @20 ซม.", qty: 57.37, unit: "ตร.ม.", materialUnit: 55.00, materialTotal: 3155.35, laborUnit: 25.00, laborTotal: 1434.25, total: 4589.60, note: "", isSubtotal: false},
+            {category: "Subtotal: โครงสร้าง", code: "", item: "", qty: "", unit: "", materialUnit: "", materialTotal: 33174.35, laborUnit: "", laborTotal: 8079.35, total: 41253.70, note: "รวมงานโครงสร้าง", isSubtotal: true},
+            
+            // งานสถาปัตย์
+            {category: "งานสถาปัตย์", code: "2.1", item: "ผนังอิฐมอญฉาบปูน", qty: 372.38, unit: "ตร.ม.", materialUnit: 280.00, materialTotal: 104266.40, laborUnit: 90.00, laborTotal: 33514.20, total: 137780.60, note: "", isSubtotal: false},
+            {category: "", code: "", item: "กระเบื้องบุผนังห้องน้ำ", qty: 21.25, unit: "ตร.ม.", materialUnit: 420.00, materialTotal: 8925.00, laborUnit: 150.00, laborTotal: 3187.50, total: 12112.50, note: "", isSubtotal: false},
+            {category: "Subtotal: สถาปัตย์", code: "", item: "", qty: "", unit: "", materialUnit: "", materialTotal: 113191.40, laborUnit: "", laborTotal: 36701.70, total: 149893.10, note: "รวมงานสถาปัตย์", isSubtotal: true},
+            
+            // งานระบบไฟฟ้า
+            {category: "งานระบบไฟฟ้า", code: "3.1", item: "สายไฟ THW 2.5 ตร.มม.", qty: 450.00, unit: "ม.", materialUnit: 15.00, materialTotal: 6750.00, laborUnit: 8.00, laborTotal: 3600.00, total: 10350.00, note: "", isSubtotal: false},
+            {category: "", code: "", item: "หลอดไฟ LED 12W", qty: 24.00, unit: "ดวง", materialUnit: 250.00, materialTotal: 6000.00, laborUnit: 50.00, laborTotal: 1200.00, total: 7200.00, note: "", isSubtotal: false},
+            {category: "Subtotal: ไฟฟ้า", code: "", item: "", qty: "", unit: "", materialUnit: "", materialTotal: 12750.00, laborUnit: "", laborTotal: 4800.00, total: 17550.00, note: "รวมงานไฟฟ้า", isSubtotal: true},
+            
+            // Grand Total
+            {category: "GRAND TOTAL", code: "", item: "", qty: "", unit: "", materialUnit: "", materialTotal: 159115.75, laborUnit: "", laborTotal: 49581.05, total: 208696.80, note: "รวมทั้งโครงการ", isGrandTotal: true}
+        ];
+        
+        function formatNumber(num) {
+            if (num === "" || num === null || num === undefined) return "";
+            return parseFloat(num).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        
+        function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            sampleData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-index', index);
+                
+                // Add CSS classes for styling
+                if (row.isSubtotal) {
+                    tr.classList.add('subtotal-row');
+                } else if (row.isGrandTotal) {
+                    tr.classList.add('grandtotal-row');
+                } else if (row.category && row.category !== "") {
+                    tr.classList.add('category-header');
+                }
+                
+                tr.innerHTML = `
+                    <td>${row.category}</td>
+                    <td class="text-center">${row.code}</td>
+                    <td>${row.item}</td>
+                    <td class="text-right number">${formatNumber(row.qty)}</td>
+                    <td class="text-center">${row.unit}</td>
+                    <td class="text-right number">${formatNumber(row.materialUnit)}</td>
+                    <td class="text-right number">${formatNumber(row.materialTotal)}</td>
+                    <td class="text-right number">${formatNumber(row.laborUnit)}</td>
+                    <td class="text-right number">${formatNumber(row.laborTotal)}</td>
+                    <td class="text-right number"><strong>${formatNumber(row.total)}</strong></td>
+                    <td>${row.note}</td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            updateStatus('โหลดข้อมูลเสร็จสิ้น');
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('statusMessage').textContent = message;
+        }
+        
+        function refreshData() {
+            loadData();
+            updateStatus('รีเฟรชข้อมูลแล้ว');
+        }
+        
+        function calculateTotals() {
+            updateStatus('กำลังคำนวณ...');
+            
+            let grandMaterial = 0;
+            let grandLabor = 0;
+            let grandTotal = 0;
+            
+            sampleData.forEach(row => {
+                if (!row.isSubtotal && !row.isGrandTotal && row.qty !== "") {
+                    const qty = parseFloat(row.qty) || 0;
+                    const materialUnit = parseFloat(row.materialUnit) || 0;
+                    const laborUnit = parseFloat(row.laborUnit) || 0;
+                    
+                    row.materialTotal = qty * materialUnit;
+                    row.laborTotal = qty * laborUnit;
+                    row.total = row.materialTotal + row.laborTotal;
+                    
+                    grandMaterial += row.materialTotal;
+                    grandLabor += row.laborTotal;
+                    grandTotal += row.total;
+                }
+            });
+            
+            // Update grand total
+            const grandTotalRow = sampleData.find(row => row.isGrandTotal);
+            if (grandTotalRow) {
+                grandTotalRow.materialTotal = grandMaterial;
+                grandTotalRow.laborTotal = grandLabor;
+                grandTotalRow.total = grandTotal;
+            }
+            
+            loadData();
+            updateStatus(`คำนวณเสร็จสิ้น - รวมทั้งหมด: ${formatNumber(grandTotal)} บาท`);
+        }
+        
+        function addNewRow() {
+            const newRow = {
+                category: "",
+                code: "",
+                item: "รายการใหม่",
+                qty: 0,
+                unit: "หน่วย",
+                materialUnit: 0,
+                materialTotal: 0,
+                laborUnit: 0,
+                laborTotal: 0,
+                total: 0,
+                note: "",
+                isSubtotal: false
+            };
+            
+            // Insert before grand total
+            const grandTotalIndex = sampleData.findIndex(row => row.isGrandTotal);
+            if (grandTotalIndex > -1) {
+                sampleData.splice(grandTotalIndex, 0, newRow);
+            } else {
+                sampleData.push(newRow);
+            }
+            
+            loadData();
+            updateStatus('เพิ่มแถวใหม่แล้ว');
+        }
+        
+        function deleteRow() {
+            // For demo purposes, remove the last non-total row
+            for (let i = sampleData.length - 1; i >= 0; i--) {
+                if (!sampleData[i].isSubtotal && !sampleData[i].isGrandTotal) {
+                    sampleData.splice(i, 1);
+                    break;
+                }
+            }
+            
+            loadData();
+            updateStatus('ลบแถวแล้ว');
+        }
+        
+        function exportCSV() {
+            let csv = 'หมวดงานหลัก,รหัส,รายการงานย่อย,QTY,UNIT,Material/unit,Material Total,Labor/unit,Labor Total,Total,หมายเหตุ\\n';
+            
+            sampleData.forEach(row => {
+                csv += `"${row.category}","${row.code}","${row.item}","${row.qty}","${row.unit}","${row.materialUnit}","${row.materialTotal}","${row.laborUnit}","${row.laborTotal}","${row.total}","${row.note}"\\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'quantity_takeoff.csv';
+            link.click();
+            
+            updateStatus('ส่งออก CSV เรียบร้อยแล้ว');
+        }
+        
+        // Load data when page loads
+        window.onload = function() {
+            loadData();
+        };
+    </script>
+</body>
+</html>
