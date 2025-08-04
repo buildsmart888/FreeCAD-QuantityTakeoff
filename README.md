@@ -39,6 +39,9 @@ git clone https://github.com/buildsmart888/FreeCAD-QuantityTakeoff.git QuantityT
 ```
 
 ## 📷 **Screenshots**
+<img width="1897" height="1010" alt="Screenshot 2025-08-04 133058" src="https://github.com/user-attachments/assets/da97c85f-d0fe-4490-a2b7-3e205f711076" />
+<img width="1916" height="1012" alt="Screenshot 2025-08-04 134038" src="https://github.com/user-attachments/assets/77443c72-cfc8-4466-b0b9-537092ba8c4c" />
+
 
 ### Main BOQ Dialog
 ![BOQ Dialog](screenshots/boq-dialog.png)
