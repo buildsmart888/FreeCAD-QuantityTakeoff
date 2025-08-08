@@ -52,7 +52,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install PySide2
+        pip install PySide2 pytest
     
     - name: Test imports
       run: |
@@ -90,6 +90,9 @@ jobs:
         
         print('✅ All required files present')
         "
+
+    - name: Run tests
+      run: pytest
 
   release:
     needs: [lint, test]
