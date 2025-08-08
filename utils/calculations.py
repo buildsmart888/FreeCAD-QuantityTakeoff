@@ -35,12 +35,17 @@ class QTOCalculator:
                 bbox = obj.Shape.BoundBox
                 # Convert from mm to m
                 properties['Length'] = round(bbox.XLength / 1000, 2)
-                properties['Width'] = round(bbox.YLength / 1000, 2) 
+                properties['Width'] = round(bbox.YLength / 1000, 2)
                 properties['Height'] = round(bbox.ZLength / 1000, 2)
                 properties['Volume'] = round(obj.Shape.Volume / 1000000000, 6)  # mm³ to m³
-                
-                # Calculate area (using bounding box approximation)
-                if properties['Height'] > 0:
+
+                # Prefer actual shape area when available
+                if hasattr(obj.Shape, 'Area') and obj.Shape.Area:
+                    properties['Area'] = round(obj.Shape.Area / 1000000, 2)  # mm² to m²
+                elif hasattr(obj, 'Area') and obj.Area:
+                    properties['Area'] = round(obj.Area / 1000000, 2)  # mm² to m²
+                elif properties['Height'] > 0:
+                    # Fallback to bounding box approximation
                     properties['Area'] = round((properties['Length'] * properties['Width']), 2)
             
             # Try to get specific properties for different object types
