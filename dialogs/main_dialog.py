@@ -165,8 +165,8 @@ class QuantityTakeoffMainDialog(QMainWindow):
     def calculate_row_totals(self, row):
         """Calculate totals for a specific row"""
         try:
-            # Disconnect signals temporarily to prevent infinite loops
-            self.table.itemChanged.disconnect()
+            # Block signals temporarily to prevent infinite loops
+            self.table.blockSignals(True)
             
             # Get values
             quantity_item = self.table.item(row, 8)  # Quantity column
@@ -199,8 +199,8 @@ class QuantityTakeoffMainDialog(QMainWindow):
         except (ValueError, TypeError) as e:
             FreeCAD.Console.PrintError(f"Error calculating row totals: {e}\n")
         finally:
-            # Reconnect signals
-            self.table.itemChanged.connect(self.on_item_changed)
+            # Re-enable signals
+            self.table.blockSignals(False)
     
     def calculate_totals(self):
         """Calculate all row totals"""
