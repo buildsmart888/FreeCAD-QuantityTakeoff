@@ -3,6 +3,8 @@
 QTOCalculator - Calculation utilities for Quantity Takeoff
 """
 
+from typing import Any, Dict, Union
+
 import FreeCAD
 
 class QTOCalculator:
@@ -11,7 +13,7 @@ class QTOCalculator:
     """
     
     @staticmethod
-    def get_object_properties(obj):
+    def get_object_properties(obj: Any) -> Dict[str, Union[str, float, int]]:
         """Extract properties from FreeCAD object"""
         try:
             properties = {
@@ -33,12 +35,17 @@ class QTOCalculator:
                 bbox = obj.Shape.BoundBox
                 # Convert from mm to m
                 properties['Length'] = round(bbox.XLength / 1000, 2)
-                properties['Width'] = round(bbox.YLength / 1000, 2) 
+                properties['Width'] = round(bbox.YLength / 1000, 2)
                 properties['Height'] = round(bbox.ZLength / 1000, 2)
                 properties['Volume'] = round(obj.Shape.Volume / 1000000000, 6)  # mm³ to m³
-                
-                # Calculate area (using bounding box approximation)
-                if properties['Height'] > 0:
+
+                # Prefer actual shape area when available
+                if hasattr(obj.Shape, 'Area') and obj.Shape.Area:
+                    properties['Area'] = round(obj.Shape.Area / 1000000, 2)  # mm² to m²
+                elif hasattr(obj, 'Area') and obj.Area:
+                    properties['Area'] = round(obj.Area / 1000000, 2)  # mm² to m²
+                elif properties['Height'] > 0:
+                    # Fallback to bounding box approximation
                     properties['Area'] = round((properties['Length'] * properties['Width']), 2)
             
             # Try to get specific properties for different object types
@@ -68,7 +75,7 @@ class QTOCalculator:
             }
     
     @staticmethod
-    def calculate_material_total(quantity, material_per_unit):
+    def calculate_material_total(quantity: float, material_per_unit: float) -> float:
         """Calculate material total cost"""
         try:
             return float(quantity) * float(material_per_unit)
@@ -76,7 +83,7 @@ class QTOCalculator:
             return 0.0
     
     @staticmethod
-    def calculate_labor_total(quantity, labor_per_unit):
+    def calculate_labor_total(quantity: float, labor_per_unit: float) -> float:
         """Calculate labor total cost"""
         try:
             return float(quantity) * float(labor_per_unit)
@@ -84,7 +91,7 @@ class QTOCalculator:
             return 0.0
     
     @staticmethod
-    def calculate_row_total(material_total, labor_total):
+    def calculate_row_total(material_total: float, labor_total: float) -> float:
         """Calculate total for a row"""
         try:
             return float(material_total) + float(labor_total)
@@ -92,7 +99,7 @@ class QTOCalculator:
             return 0.0
     
     @staticmethod
-    def format_currency(value):
+    def format_currency(value: float) -> str:
         """Format number as currency"""
         try:
             return f"{float(value):,.2f}"
@@ -100,7 +107,7 @@ class QTOCalculator:
             return "0.00"
     
     @staticmethod
-    def format_quantity(value):
+    def format_quantity(value: float) -> str:
         """Format quantity value"""
         try:
             return f"{float(value):,.0f}"
@@ -108,7 +115,7 @@ class QTOCalculator:
             return "0"
     
     @staticmethod
-    def format_dimension(value):
+    def format_dimension(value: float) -> str:
         """Format dimension value (meters)"""
         try:
             return f"{float(value):,.2f}"

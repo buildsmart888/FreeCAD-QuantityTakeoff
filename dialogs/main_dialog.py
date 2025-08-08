@@ -151,7 +151,41 @@ class QuantityTakeoffMainDialog(QMainWindow):
                 self.table.setItem(row, col, item)
         
         self.calculate_totals()
-        
+
+    def append_objects(self, objects):
+        """Append provided FreeCAD objects to the table"""
+        if not objects:
+            return
+
+        start_row = self.table.rowCount()
+        self.table.setRowCount(start_row + len(objects))
+
+        for index, obj in enumerate(objects):
+            row = start_row + index
+            props = self.calculator.get_object_properties(obj)
+
+            # Fill non-editable columns with object properties
+            for col, (key, value) in enumerate(props.items()):
+                if col < 10:
+                    item = QTableWidgetItem(str(value))
+                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                    self.table.setItem(row, col, item)
+
+            # Add editable and calculated price columns
+            for col in range(10, 15):
+                item = QTableWidgetItem("0")
+                if col in [10, 11]:
+                    item.setFlags(item.flags() | Qt.ItemIsEditable)
+                else:
+                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                self.table.setItem(row, col, item)
+
+            # Initialize totals for the new row
+            self.calculate_row_totals(row)
+
+        # Update grand total after appending
+        self.update_grand_total()
+
     def on_item_changed(self, item):
         """Handle item changes in table"""
         row = item.row()
@@ -165,8 +199,8 @@ class QuantityTakeoffMainDialog(QMainWindow):
     def calculate_row_totals(self, row):
         """Calculate totals for a specific row"""
         try:
-            # Disconnect signals temporarily to prevent infinite loops
-            self.table.itemChanged.disconnect()
+            # Block signals temporarily to prevent infinite loops
+            self.table.blockSignals(True)
             
             # Get values
             quantity_item = self.table.item(row, 8)  # Quantity column
@@ -199,8 +233,8 @@ class QuantityTakeoffMainDialog(QMainWindow):
         except (ValueError, TypeError) as e:
             FreeCAD.Console.PrintError(f"Error calculating row totals: {e}\n")
         finally:
-            # Reconnect signals
-            self.table.itemChanged.connect(self.on_item_changed)
+            # Re-enable signals
+            self.table.blockSignals(False)
     
     def calculate_totals(self):
         """Calculate all row totals"""
@@ -306,8 +340,8 @@ def show_main_dialog():
 def add_selected_objects(objects):
     """Add selected objects to the main dialog table"""
     global _main_dialog
-    
+
     if _main_dialog:
-        _main_dialog.refresh_data()
+        _main_dialog.append_objects(objects)
     else:
         FreeCAD.Console.PrintMessage("Please open the main dialog first\n")
